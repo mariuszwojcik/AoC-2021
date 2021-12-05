@@ -7,10 +7,10 @@ type Direction = | Horizontal | Vertical | Diagonal
 type Line = 
     { c1 : Coords; c2: Coords }
     with member this.direction = 
-            if this.c1.x = this.c2.x then Vertical
-            else if this.c1.y = this.c2.y then Horizontal
-            else Diagonal
-
+            match this with
+            | l when l.c1.x = l.c2.x -> Vertical
+            | l when l.c1.y = l.c2.y -> Horizontal
+            | _ -> Diagonal
 
 let parse (s :string) =
     let m = Regex.Match(s, "(\d*),(\d*) -> (\d*),(\d*)")
@@ -41,24 +41,13 @@ let expand (l : Line) =
         [| a..b |]
         |> Array.scan(fun s v -> {s with y = v }) l.c1
         |> Array.skip 1
-    | Diagonal when l.c1.x < l.c2.x && l.c1.y < l.c2.y ->
-        [| l.c1.y .. l.c2.y |]
-        |> Array.zip [| l.c1.x .. l.c2.x |]
-        |> Array.scan(fun s (x,y) -> {s with x = x; y = y }) l.c1
-        |> Array.skip 1
-    | Diagonal when l.c1.x < l.c2.x && l.c1.y > l.c2.y ->
-        [| l.c2.y .. l.c1.y |] |> Array.rev
-        |> Array.zip [| l.c1.x .. l.c2.x |]
-        |> Array.scan(fun s (x,y) -> {s with x = x; y = y }) l.c1
-        |> Array.skip 1
-    | Diagonal when l.c1.x > l.c2.x && l.c1.y < l.c2.y ->
-        [| l.c1.y .. l.c2.y |]
-        |> Array.zip ([| l.c2.x .. l.c1.x |] |> Array.rev)
-        |> Array.scan(fun s (x,y) -> {s with x = x; y = y }) l.c1
-        |> Array.skip 1
+
     | Diagonal ->
-        [| l.c2.y .. l.c1.y |] |> Array.rev
-        |> Array.zip ([| l.c2.x .. l.c1.x |] |> Array.rev)
+        let dx = if l.c1.x < l.c2.x then 1 else -1
+        let dy = if l.c1.y < l.c2.y then 1 else -1
+
+        [| l.c1.y .. dy .. l.c2.y |] 
+        |> Array.zip [| l.c1.x .. dx ..  l.c2.x |]
         |> Array.scan(fun s (x,y) -> {s with x = x; y = y }) l.c1
         |> Array.skip 1
 
@@ -79,8 +68,8 @@ let countOverlappedPoints lines =
     |> Array.map(fun (c, _) -> c)
     |> Array.length
 
-// part 1
 
+// part 1
 lines
 |> Array.filter(fun l -> l.direction = Diagonal |> not)
 |> countOverlappedPoints
